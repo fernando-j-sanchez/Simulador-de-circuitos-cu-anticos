@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador Cuántico · Circuito 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: una columna tipo "bitácora de laboratorio"; el circuito arriba como instrumento, los pasos se apilan en orden. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --surface2:#eaeef4; --fg:#131a26; --muted:#566074;
+  --border:#d5dbe5; --accent:#0e7c86; --accent-soft:#d8f0f1; --hl:#ffe9a8; --hl-stroke:#d99a00;
+  --q0:#0e7c86; --q1:#b4462f; --neg:#b4462f; --ok:#1d7a4a;
+  --wire:#131a26;
+  --f-display:"Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Schibsted Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0d1219; --surface:#151c26; --surface2:#1c2532; --fg:#e6ebf2; --muted:#94a0b4;
+  --border:#2a3545; --accent:#3cc3cf; --accent-soft:#113940; --hl:#4a3a0c; --hl-stroke:#f2b634;
+  --q0:#3cc3cf; --q1:#f08a70; --neg:#f08a70; --ok:#5fd394; --wire:#e6ebf2; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0d1219; --surface:#151c26; --surface2:#1c2532; --fg:#e6ebf2; --muted:#94a0b4;
+  --border:#2a3545; --accent:#3cc3cf; --accent-soft:#113940; --hl:#4a3a0c; --hl-stroke:#f2b634;
+  --q0:#3cc3cf; --q1:#f08a70; --neg:#f08a70; --ok:#5fd394; --wire:#e6ebf2; color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:24px 64px;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:2px solid var(--fg);padding-bottom:12px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.6rem,4vw,2.3rem);margin:0;letter-spacing:-.02em;text-wrap:balance}
+h2{font-size:1.1rem;margin:0;font-weight:800;letter-spacing:-.01em}
+h3{font-size:.95rem;margin:0;font-weight:600}
+.eyebrow{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.meta{font-size:.85rem;color:var(--muted);text-align:right}
+.meta b{color:var(--fg)}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.mono{font-family:var(--f-mono)}
+
+/* circuito */
+.circuit-box{overflow-x:auto}
+svg.circuit{display:block;width:100%;min-width:560px;height:auto}
+.circuit text{font-family:var(--f-mono);fill:var(--fg)}
+.circuit .wire{stroke:var(--wire);stroke-width:2}
+.circuit .gbox{fill:var(--surface);stroke:var(--wire);stroke-width:2}
+.circuit .dot{fill:var(--wire)}
+.circuit .hlrect{fill:transparent;stroke:transparent;stroke-width:2;rx:8}
+.circuit g.col.current .hlrect{fill:var(--hl);stroke:var(--hl-stroke)}
+.circuit g.col.done .gbox{fill:var(--accent-soft)}
+.circuit g.col.done .check{opacity:1}
+.circuit .check{opacity:0;fill:var(--ok);font-size:13px;font-family:var(--f-body)}
+.circuit .stepno{fill:var(--muted);font-size:12px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.82rem;color:var(--muted)}
+.legend span b{color:var(--fg);font-family:var(--f-mono);font-weight:600}
+
+/* entrada */
+.qin{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.qcard{border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--surface2)}
+.qcard h3{font-family:var(--f-mono)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--f-mono);font-size:.9rem;border:1px solid var(--border);background:var(--surface);color:var(--fg);border-radius:999px;padding:4px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip:disabled{cursor:not-allowed;opacity:.6}
+.custom{display:grid;grid-template-columns:auto 1fr;gap:6px 8px;align-items:center;font-family:var(--f-mono);font-size:.85rem}
+.custom input{font-family:var(--f-mono);font-size:.9rem;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--fg);min-width:0;width:100%}
+.err{color:var(--neg);font-size:.8rem;min-height:1em}
+.psi0{font-family:var(--f-mono);font-size:1rem;background:var(--surface2);border-radius:8px;padding:10px 12px;overflow-x:auto}
+
+/* controles */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;border-bottom:1px solid var(--border)}
+button.btn{font-family:var(--f-body);font-weight:600;font-size:.92rem;border-radius:8px;border:1px solid var(--fg);background:var(--surface);color:var(--fg);padding:8px 14px;cursor:pointer}
+button.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] button.btn.primary{color:#06181a}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) button.btn.primary{color:#06181a} }
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,.chip:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--hl-stroke);outline-offset:2px}
+.progress{margin-left:auto;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.pbar{display:flex;gap:4px}
+.pbar i{width:22px;height:6px;border-radius:3px;background:var(--border)}
+.pbar i.on{background:var(--accent)}
+
+/* pasos */
+#log{display:flex;flex-direction:column;gap:16px}
+.step{border-left:4px solid var(--border);scroll-margin-top:72px}
+.step.current{border-left-color:var(--hl-stroke)}
+.step .tag{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--border);border-radius:6px;padding:2px 8px;background:var(--surface2)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.eq{font-family:var(--f-mono);background:var(--surface2);border-radius:8px;padding:10px 12px;overflow-x:auto;font-size:.9rem;display:flex;flex-direction:column;gap:4px}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:700px){.ba{grid-template-columns:1fr}}
+.ket{font-family:var(--f-mono);font-size:.98rem;border:1px solid var(--border);border-radius:8px;padding:10px 12px;overflow-x:auto;min-width:0}
+.ket .lbl{display:block;font-family:var(--f-body);font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:4px}
+.ket.after{border-color:var(--accent)}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.88rem}
+th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.mono{font-family:var(--f-mono)}
+tr.changed td{background:var(--accent-soft)}
+.bar{position:relative;height:10px;width:120px;background:var(--surface2);border-radius:5px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px}
+.bar b{position:absolute;inset:0 auto 0 0;background:var(--accent)}
+.qprobs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.qp{border:1px solid var(--border);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:.85rem}
+.qp h3{font-family:var(--f-mono)}
+.split{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--surface2)}
+.split .z{background:var(--q0)}
+.split .o{background:var(--q1)}
+.qp .nums{display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;font-family:var(--f-mono)}
+.qp .nums .a{color:var(--q0)} .qp .nums .b{color:var(--q1)}
+details summary{cursor:pointer;font-size:.85rem;color:var(--muted);font-weight:600}
+.matrix{font-family:var(--f-mono);font-size:.8rem}
+.matrix td,.matrix th{text-align:center;padding:3px 6px}
+.matrix td.nz{font-weight:600;color:var(--accent)}
+.outcomes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:700px){.outcomes{grid-template-columns:1fr}}
+.outcome{border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.outcome.picked{border:2px solid var(--hl-stroke);background:var(--hl)}
+.outcome .big{font-size:1.6rem;font-weight:800;font-variant-numeric:tabular-nums}
+.outcome.zero .big{color:var(--q0)} .outcome.one .big{color:var(--q1)}
+.final{border:2px solid var(--fg)}
+.orig{display:block;max-width:100%;height:auto;margin-top:8px;border:1px solid var(--border);border-radius:8px;background:#fff}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .orig{filter:invert(.9)} }
+:root[data-theme="dark"] .orig{filter:invert(.9)}
+kbd{font-family:var(--f-mono);font-size:.78rem;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface)}
+.note{font-size:.85rem;color:var(--muted);border-left:3px solid var(--border);padding-left:10px}
+@media (prefers-reduced-motion:no-preference){ .step{animation:rise .35s ease-out} @keyframes rise{from{transform:translateY(6px)}to{transform:none}} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div>
+    <div class="eyebrow">Cómputo Cuántico · Proyecto de simulación</div>
+    <h1>Simulador de circuitos cuánticos</h1>
+  </div>
+  <div class="meta">Circuito 2 · 3 qubits · 5 compuertas + medición<br><b>Hijar González Fátima Estefanía</b></div>
+</header>
+
+<section class="panel" aria-labelledby="t-circ">
+  <div class="panel-head">
+    <h2 id="t-circ">Circuito a simular</h2>
+    <span class="small muted" id="circ-status">Listo para iniciar</span>
+  </div>
+  <div class="circuit-box" id="circuit"></div>
+  <div class="legend">
+    <span><b>H</b> Hadamard</span>
+    <span><b>●─⊕/X</b> Toffoli (CCNOT)</span>
+    <span><b>●─Z</b> Z controlada (CZ)</span>
+    <span><b>◠</b> Medición</span>
+    <span>Convención: <b>|q₀q₁q₂⟩</b>, q₀ es el bit más significativo</span>
+  </div>
+  <details><summary>Ver el diagrama original del enunciado</summary><img class="orig" src="circuito_original.png" alt="Diagrama original del Circuito 2: H, H en q1; H en q2; Toffoli q0,q1→q2; CZ q1→q2; medición de q1"></details>
+</section>
+
+<section class="panel" aria-labelledby="t-in">
+  <div class="panel-head">
+    <h2 id="t-in">Estado inicial</h2>
+    <span class="small muted">Elige el estado de cada qubit. “Personalizado” acepta α y β, por ejemplo <span class="mono">1/√2</span>, <span class="mono">0.6</span>, <span class="mono">0.8i</span>, <span class="mono">-i/sqrt(2)</span>.</span>
+  </div>
+  <div class="qin" id="qin"></div>
+  <div class="psi0" id="psi0"></div>
+</section>
+
+<div class="controls" role="toolbar" aria-label="Controles de simulación">
+  <button class="btn primary" id="btn-next">Iniciar simulación</button>
+  <button class="btn" id="btn-all">Ejecutar todo</button>
+  <button class="btn" id="btn-reset">Reiniciar</button>
+  <span class="small muted">Atajos: <kbd>→</kbd> siguiente · <kbd>R</kbd> reiniciar</span>
+  <div class="progress"><span id="prog-txt">Paso 0 de 6</span><div class="pbar" id="pbar"></div></div>
+</div>
+
+<div id="log" aria-live="polite"></div>
+
+</div>
+
+<script>
+"use strict";
+/* ============ Aritmética compleja ============ */
+const c=(re,im=0)=>({re,im});
+const cadd=(a,b)=>c(a.re+b.re,a.im+b.im);
+const csub=(a,b)=>c(a.re-b.re,a.im-b.im);
+const cmul=(a,b)=>c(a.re*b.re-a.im*b.im,a.re*b.im+a.im*b.re);
+const cabs2=a=>a.re*a.re+a.im*a.im;
+const cdiv=(a,b)=>{const d=cabs2(b); if(d<1e-15) throw new Error("División entre cero"); return c((a.re*b.re+a.im*b.im)/d,(a.im*b.re-a.re*b.im)/d);};
+const cscale=(a,s)=>c(a.re*s,a.im*s);
+const EPS=1e-10, S2=Math.SQRT1_2;
+
+/* ============ Compuertas y circuito ============ */
+const N=3, DIM=8;
+const bit=(i,q)=>(i>>(N-1-q))&1;         // q0 = bit más significativo
+const mask=q=>1<<(N-1-q);
+const bits=i=>i.toString(2).padStart(N,"0");
+const SUB=["₀","₁","₂"];
+
+const MAT={
+  H:[[c(S2),c(S2)],[c(S2),c(-S2)]],
+  X:[[c(0),c(1)],[c(1),c(0)]],
+  Z:[[c(1),c(0)],[c(0),c(-1)]],
+};
+
+const STEPS=[
+  {kind:"gate",name:"Hadamard",sym:"H",target:1,controls:[],m:MAT.H,
+   op:"U₁ = I ⊗ H ⊗ I",
+   rule:"H|0⟩ = (|0⟩+|1⟩)/√2,   H|1⟩ = (|0⟩−|1⟩)/√2",
+   desc:"Pone al qubit q₁ en superposición."},
+  {kind:"gate",name:"Hadamard",sym:"H",target:1,controls:[],m:MAT.H,
+   op:"U₂ = I ⊗ H ⊗ I",
+   rule:"H·H = I  →  q₁ regresa a su valor original",
+   desc:"Segunda Hadamard sobre q₁; como H es su propia inversa, deshace la anterior."},
+  {kind:"gate",name:"Hadamard",sym:"H",target:2,controls:[],m:MAT.H,
+   op:"U₃ = I ⊗ I ⊗ H",
+   rule:"H|0⟩ = |+⟩,   H|1⟩ = |−⟩",
+   desc:"Pone al qubit q₂ en superposición."},
+  {kind:"gate",name:"Toffoli (CCNOT)",sym:"CCX",target:2,controls:[0,1],m:MAT.X,
+   op:"U₄ = CCX(q₀,q₁ → q₂) = (I₈ − |11⟩⟨11|⊗I) + |11⟩⟨11|⊗X",
+   rule:"|a,b,c⟩ → |a, b, c ⊕ (a·b)⟩   (X sobre q₂ solo si q₀=q₁=1)",
+   desc:"Invierte q₂ únicamente en las componentes donde q₀ = 1 y q₁ = 1."},
+  {kind:"gate",name:"Z controlada (CZ)",sym:"CZ",target:2,controls:[1],m:MAT.Z,
+   op:"U₅ = I ⊗ CZ(q₁ → q₂) = I ⊗ (|0⟩⟨0|⊗I + |1⟩⟨1|⊗Z)",
+   rule:"|a,b,c⟩ → (−1)^(b·c) |a,b,c⟩",
+   desc:"Cambia el signo de las componentes donde q₁ = 1 y q₂ = 1."},
+  {kind:"measure",name:"Medición",sym:"M",target:1,
+   op:"P(q₁=k) = ⟨ψ₅| P_k |ψ₅⟩,   P_k = I ⊗ |k⟩⟨k| ⊗ I",
+   desc:"Se mide q₁ en la base computacional. El estado colapsa según el resultado."}
+];
+
+function applyGate(state,g){
+  const out=state.map(z=>c(z.re,z.im)), tm=mask(g.target);
+  for(let i=0;i<DIM;i++){
+    if(i&tm) continue;
+    if(!g.controls.every(q=>bit(i,q))) continue;
+    const j=i|tm, a0=state[i], a1=state[j], m=g.m;
+    out[i]=cadd(cmul(m[0][0],a0),cmul(m[0][1],a1));
+    out[j]=cadd(cmul(m[1][0],a0),cmul(m[1][1],a1));
+  }
+  return out;
+}
+function gateMatrix(g){
+  const U=[...Array(DIM)].map(()=>Array(DIM));
+  for(let j=0;j<DIM;j++){
+    const e=[...Array(DIM)].map((_,k)=>c(k===j?1:0));
+    const col=applyGate(e,g);
+    for(let i=0;i<DIM;i++) U[i][j]=col[i];
+  }
+  return U;
+}
+function qubitProbs(st){
+  return [0,1,2].map(q=>{let p1=0; st.forEach((a,i)=>{if(bit(i,q)) p1+=cabs2(a);}); return [1-p1,p1];});
+}
+function collapse(st,q,k){
+  let p=0; st.forEach((a,i)=>{if(bit(i,q)===k) p+=cabs2(a);});
+  if(p<EPS) return {p:0,state:null};
+  const s=1/Math.sqrt(p);
+  return {p,state:st.map((a,i)=>bit(i,q)===k?cscale(a,s):c(0))};
+}
+
+/* ============ Formato de números y kets ============ */
+const KNOWN=[[1,"1"],[S2,"1/√2"],[0.5,"1/2"],[S2/2,"1/(2√2)"],[0.25,"1/4"],[Math.sqrt(3)/2,"√3/2"],[1/Math.sqrt(3),"1/√3"],[0.6,"0.6"],[0.8,"0.8"]];
+function fmtMag(x){for(const [v,t] of KNOWN) if(Math.abs(x-v)<1e-9) return t; return String(+x.toFixed(4));}
+function fmtReal(x){return (x<0?"−":"")+fmtMag(Math.abs(x));}
+function fmtC(z){
+  const r=Math.abs(z.re)>1e-9, i=Math.abs(z.im)>1e-9;
+  if(!r&&!i) return "0";
+  if(!i) return fmtReal(z.re);
+  if(!r){const m=fmtMag(Math.abs(z.im)); return (z.im<0?"−":"")+(m==="1"?"":m)+"i";}
+  return "("+fmtReal(z.re)+(z.im<0?" − ":" + ")+fmtMag(Math.abs(z.im))+"i)";
+}
+const ket=i=>`|${bits(i)}⟩`;
+function unitPhase(a,m){
+  const u=c(a.re/m,a.im/m);
+  if(Math.abs(u.im)<1e-9&&Math.abs(Math.abs(u.re)-1)<1e-9) return u.re>0?"+":"−";
+  if(Math.abs(u.re)<1e-9&&Math.abs(Math.abs(u.im)-1)<1e-9) return u.im>0?"+i":"−i";
+  return null;
+}
+function ketStr(st){
+  const nz=[]; st.forEach((a,i)=>{if(cabs2(a)>EPS) nz.push([i,a]);});
+  if(!nz.length) return "0";
+  const m=Math.sqrt(cabs2(nz[0][1]));
+  const uniform=nz.every(([,a])=>Math.abs(Math.sqrt(cabs2(a))-m)<1e-9);
+  if(uniform && nz.length>1 && nz.every(([,a])=>unitPhase(a,m))){
+    let body="";
+    nz.forEach(([i,a],k)=>{
+      const ph=unitPhase(a,m), neg=ph[0]==="−", im=ph.length>1?"i":"";
+      body+= k===0 ? (neg?"−":"")+im+ket(i) : (neg?" − ":" + ")+im+ket(i);
+    });
+    return `${fmtMag(m)} (${body})`;
+  }
+  let out="";
+  nz.forEach(([i,a],k)=>{
+    let co=fmtC(a), neg=false;
+    if(co.startsWith("−")){neg=true; co=co.slice(1);}
+    if(co==="1") co="";
+    out+= k===0 ? (neg?"−":"")+co+ket(i) : (neg?" − ":" + ")+co+ket(i);
+  });
+  return out;
+}
+const pct=p=>(Math.max(0,Math.min(1,p))*100).toFixed(2)+"%";
+const esc=s=>String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+
+/* ============ Parser de números complejos (α, β personalizados) ============ */
+function parseComplex(src){
+  const s=src.replace(/\s+/g,"").replace(/√/g,"sqrt").replace(/[−–]/g,"-").replace(/,/g,".");
+  if(!s) throw new Error("Vacío");
+  let p=0;
+  const peek=()=>s[p];
+  const startsFactor=()=>p<s.length && /[0-9.(is]/.test(s[p]);
+  function expr(){let v=term(); while(peek()==="+"||peek()==="-"){const op=s[p++]; const r=term(); v=op==="+"?cadd(v,r):csub(v,r);} return v;}
+  function term(){let v=unary(); for(;;){ if(peek()==="*"){p++; v=cmul(v,unary());} else if(peek()==="/"){p++; v=cdiv(v,unary());} else if(startsFactor()){ v=cmul(v,factor()); } else return v; }}
+  function unary(){ if(peek()==="-"){p++; return cscale(unary(),-1);} if(peek()==="+"){p++; return unary();} return factor(); }
+  function factor(){
+    const num=/^\d*\.?\d+/.exec(s.slice(p));
+    if(num){p+=num[0].length; return c(parseFloat(num[0]));}
+    if(peek()==="("){p++; const v=expr(); if(peek()!==")") throw new Error("Falta ')'"); p++; return v;}
+    if(peek()==="i"){p++; return c(0,1);}
+    if(s.startsWith("sqrt",p)){p+=4; const v=factor(); if(Math.abs(v.im)>1e-12||v.re<0) throw new Error("√ de negativo"); return c(Math.sqrt(v.re));}
+    throw new Error("Símbolo inesperado: "+(peek()??"fin"));
+  }
+  const v=expr();
+  if(p!==s.length) throw new Error("Símbolo inesperado: "+s[p]);
+  return v;
+}
+
+/* ============ Dibujo del circuito (SVG) ============ */
+const COLX=[150,240,330,430,530,640];
+const WY=[50,140,230];
+function drawCircuit(){
+  const box=(x,y,label)=>`<rect class="gbox" x="${x-24}" y="${y-22}" width="48" height="44" rx="3"/><text x="${x}" y="${y+8}" text-anchor="middle" font-size="22" font-style="italic">${label}</text>`;
+  const dot=(x,y)=>`<circle class="dot" cx="${x}" cy="${y}" r="6"/>`;
+  const vline=(x,y1,y2)=>`<line class="wire" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}"/>`;
+  const hl=x=>`<rect class="hlrect" x="${x-38}" y="14" width="76" height="258" rx="8"/>`;
+  const meta=(x,n)=>`<text class="stepno" x="${x}" y="292" text-anchor="middle">${n}</text><text class="check" x="${x+30}" y="30" text-anchor="middle">✓</text>`;
+  const cols=[
+    hl(COLX[0])+box(COLX[0],WY[1],"H")+meta(COLX[0],"1"),
+    hl(COLX[1])+box(COLX[1],WY[1],"H")+meta(COLX[1],"2"),
+    hl(COLX[2])+box(COLX[2],WY[2],"H")+meta(COLX[2],"3"),
+    hl(COLX[3])+vline(COLX[3],WY[0],WY[2]-22)+dot(COLX[3],WY[0])+dot(COLX[3],WY[1])+box(COLX[3],WY[2],"X")+meta(COLX[3],"4"),
+    hl(COLX[4])+vline(COLX[4],WY[1],WY[2]-22)+dot(COLX[4],WY[1])+box(COLX[4],WY[2],"Z")+meta(COLX[4],"5"),
+    hl(COLX[5])+`<rect class="gbox" x="${COLX[5]-30}" y="${WY[1]-22}" width="60" height="44" rx="3"/>
+      <path d="M ${COLX[5]-20} ${WY[1]+10} A 22 20 0 0 1 ${COLX[5]+20} ${WY[1]+10}" fill="none" stroke="var(--wire)" stroke-width="2"/>
+      <line x1="${COLX[5]}" y1="${WY[1]+12}" x2="${COLX[5]+12}" y2="${WY[1]-14}" stroke="var(--wire)" stroke-width="2"/>`+meta(COLX[5],"M")
+  ];
+  let svg=`<svg class="circuit" viewBox="0 0 740 300" role="img" aria-label="Circuito: H en q1, H en q1, H en q2, Toffoli con controles q0 y q1 sobre q2, Z controlada de q1 a q2, medición de q1">`;
+  WY.forEach((y,q)=>{svg+=`<text x="16" y="${y+8}" font-size="22" font-style="italic">q${SUB[q]} :</text><line class="wire" x1="80" y1="${y}" x2="720" y2="${y}"/>`;});
+  cols.forEach((g,k)=>{svg+=`<g class="col" id="col${k}">${g}</g>`;});
+  svg+="</svg>";
+  document.getElementById("circuit").innerHTML=svg;
+}
+function paintCircuit(done,current){
+  for(let k=0;k<6;k++){
+    const g=document.getElementById("col"+k);
+    g.classList.toggle("done",k<done);
+    g.classList.toggle("current",k===current);
+  }
+}
+
+/* ============ Entrada del estado inicial ============ */
+const PRESETS={"|0⟩":[c(1),c(0)],"|1⟩":[c(0),c(1)],"|+⟩":[c(S2),c(S2)],"|−⟩":[c(S2),c(-S2)]};
+const qsel=[{mode:"|0⟩",a:"1/√2",b:"1/√2"},{mode:"|0⟩",a:"1/√2",b:"1/√2"},{mode:"|0⟩",a:"1/√2",b:"1/√2"}];
+let locked=false;
+
+function buildInputs(){
+  const root=document.getElementById("qin"); root.innerHTML="";
+  qsel.forEach((sel,q)=>{
+    const card=document.createElement("div"); card.className="qcard";
+    const opts=[...Object.keys(PRESETS),"Personalizado"];
+    card.innerHTML=`<h3>q${SUB[q]}</h3>
+      <div class="chips" role="group" aria-label="Estado de q${q}">${opts.map(o=>`<button type="button" class="chip" data-q="${q}" data-mode="${o}" aria-pressed="${sel.mode===o}" ${locked?"disabled":""}>${o==="Personalizado"?"α|0⟩+β|1⟩":o}</button>`).join("")}</div>
+      <div class="custom" ${sel.mode==="Personalizado"?"":"hidden"}>
+        <label for="a${q}">α =</label><input id="a${q}" data-q="${q}" data-k="a" value="${esc(sel.a)}" ${locked?"disabled":""}>
+        <label for="b${q}">β =</label><input id="b${q}" data-q="${q}" data-k="b" value="${esc(sel.b)}" ${locked?"disabled":""}>
+      </div>
+      <div class="err" id="err${q}"></div>`;
+    root.appendChild(card);
+  });
+  root.querySelectorAll(".chip").forEach(b=>b.addEventListener("click",()=>{qsel[+b.dataset.q].mode=b.dataset.mode; buildInputs(); updatePsi0();}));
+  root.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{qsel[+inp.dataset.q][inp.dataset.k]=inp.value; updatePsi0();}));
+}
+function qubitVec(q){
+  const sel=qsel[q];
+  if(sel.mode!=="Personalizado") return {v:PRESETS[sel.mode],label:sel.mode};
+  const a=parseComplex(sel.a), b=parseComplex(sel.b);
+  const n=cabs2(a)+cabs2(b);
+  if(n<EPS) throw new Error("α y β no pueden ser ambos 0");
+  const s=1/Math.sqrt(n);
+  const v=[cscale(a,s),cscale(b,s)];
+  const label=`(${fmtC(v[0])}|0⟩ + ${fmtC(v[1])}|1⟩)`;
+  return {v,label,normalized:Math.abs(n-1)>1e-6};
+}
+function initialState(){
+  const qs=[0,1,2].map(qubitVec);
+  const st=[];
+  for(let i=0;i<DIM;i++) st.push(cmul(cmul(qs[0].v[bit(i,0)],qs[1].v[bit(i,1)]),qs[2].v[bit(i,2)]));
+  return {st,qs};
+}
+function updatePsi0(){
+  const out=document.getElementById("psi0");
+  let ok=true;
+  [0,1,2].forEach(q=>{
+    const e=document.getElementById("err"+q);
+    try{const r=qubitVec(q); e.textContent=r.normalized?"Se normalizó para que |α|²+|β|² = 1.":"";}
+    catch(err){ok=false; e.textContent="Valor no válido: "+err.message;}
+  });
+  if(!ok){out.innerHTML=`<span class="muted">Corrige los valores marcados para continuar.</span>`; document.getElementById("btn-next").disabled=true; document.getElementById("btn-all").disabled=true; return;}
+  const {st,qs}=initialState();
+  out.innerHTML=`|ψ₀⟩ = ${qs.map(x=>x.label).join(" ⊗ ")} = ${esc(ketStr(st))}`;
+  if(!locked){document.getElementById("btn-next").disabled=false; document.getElementById("btn-all").disabled=false;}
+}
+
+/* ============ Simulación ============ */
+let history=[];   // estados ψ0..ψ5
+let stepIdx=0;    // cuántos pasos ejecutados (0..6)
+let measured=null;
+let running=false;
+
+function ampTable(before,after){
+  const pb=before.map(cabs2), pa=after.map(cabs2);
+  let rows="";
+  for(let i=0;i<DIM;i++){
+    const ch=Math.abs(before[i].re-after[i].re)>1e-9||Math.abs(before[i].im-after[i].im)>1e-9;
+    rows+=`<tr class="${ch?"changed":""}"><td class="mono">${ket(i)}</td><td class="mono">${fmtC(before[i])}</td><td class="mono">${fmtC(after[i])}</td>
+      <td><span class="bar"><b style="width:${(pa[i]*100).toFixed(2)}%"></b></span>${pct(pa[i])}</td><td class="muted">${pct(pb[i])}</td></tr>`;
+  }
+  return `<div class="tbl-wrap"><table><thead><tr><th>Estado base</th><th>Amplitud antes</th><th>Amplitud después</th><th>Probabilidad después</th><th>Prob. antes</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function qprobHTML(st,title="Probabilidad de cada qubit en el estado resultante"){
+  const qp=qubitProbs(st);
+  return `<h3>${title}</h3><div class="qprobs">${qp.map(([p0,p1],q)=>`
+    <div class="qp"><h3>q${SUB[q]}</h3>
+      <div class="split" aria-hidden="true"><span class="z" style="width:${p0*100}%"></span><span class="o" style="width:${p1*100}%"></span></div>
+      <div class="nums"><span class="a">P(|0⟩) = ${pct(p0)}</span><span class="b">P(|1⟩) = ${pct(p1)}</span></div>
+    </div>`).join("")}</div>`;
+}
+function matrixHTML(g){
+  const U=gateMatrix(g);
+  let h=`<div class="tbl-wrap"><table class="matrix"><thead><tr><th></th>${[...Array(DIM)].map((_,j)=>`<th>${ket(j)}</th>`).join("")}</tr></thead><tbody>`;
+  for(let i=0;i<DIM;i++){h+=`<tr><th>⟨${bits(i)}|</th>${U[i].map(z=>{const t=fmtC(z); return `<td class="${t!=="0"?"nz":""}">${t}</td>`;}).join("")}</tr>`;}
+  return h+"</tbody></table></div>";
+}
+function affected(g){
+  const t=`objetivo q${SUB[g.target]}`;
+  return g.controls.length?`control ${g.controls.map(q=>"q"+SUB[q]).join(", ")} · ${t}`:t;
+}
+
+function renderGateStep(k){
+  const g=STEPS[k], before=history[k], after=history[k+1];
+  const el=document.createElement("section");
+  el.className="panel step"; el.dataset.step=k;
+  el.innerHTML=`
+    <div class="panel-head">
+      <div><div class="eyebrow">Paso ${k+1} de 6</div><h2>${g.name} sobre q${SUB[g.target]}</h2></div>
+      <div class="tags"><span class="tag">${g.sym}</span><span class="tag">${affected(g)}</span></div>
+    </div>
+    <p class="small muted" style="margin:0">${g.desc}</p>
+    <div class="eq"><span>${g.op}</span><span>${g.rule}</span><span>|ψ${"₁₂₃₄₅"[k]}⟩ = U${"₁₂₃₄₅"[k]} |ψ${"₀₁₂₃₄"[k]}⟩</span></div>
+    <div class="ba">
+      <div class="ket"><span class="lbl">Antes · |ψ${"₀₁₂₃₄"[k]}⟩</span>${esc(ketStr(before))}</div>
+      <div class="ket after"><span class="lbl">Después · |ψ${"₁₂₃₄₅"[k]}⟩</span>${esc(ketStr(after))}</div>
+    </div>
+    ${ampTable(before,after)}
+    ${qprobHTML(after)}
+    <details><summary>Ver la matriz 8×8 del operador U${"₁₂₃₄₅"[k]}</summary>${matrixHTML(g)}</details>`;
+  return el;
+}
+
+function renderMeasureStep(){
+  const st=history[5];
+  const r0=collapse(st,1,0), r1=collapse(st,1,1);
+  const el=document.createElement("section");
+  el.className="panel step"; el.dataset.step=5; el.id="measure-step";
+  const out=(r,k)=>`<div class="outcome ${k?"one":"zero"}" id="out${k}">
+      <div class="eyebrow">Resultado q₁ = ${k}</div>
+      <div class="big">${pct(r.p)}</div>
+      <div class="small">${r.state?`Colapsa a:<div class="ket" style="margin-top:4px">${esc(ketStr(r.state))}</div>`:`<span class="muted">Imposible: probabilidad 0.</span>`}</div>
+    </div>`;
+  let full="";
+  for(let i=0;i<DIM;i++){const p=cabs2(st[i]); full+=`<tr${p>EPS?' class="changed"':""}><td class="mono">${ket(i)}</td><td class="mono">${fmtC(st[i])}</td><td><span class="bar"><b style="width:${p*100}%"></b></span>${pct(p)}</td><td class="mono">q₁ = ${bit(i,1)}</td></tr>`;}
+  el.innerHTML=`
+    <div class="panel-head">
+      <div><div class="eyebrow">Paso 6 de 6</div><h2>Medición de q₁</h2></div>
+      <div class="tags"><span class="tag">M</span><span class="tag">qubit medido q₁</span></div>
+    </div>
+    <p class="small muted" style="margin:0">${STEPS[5].desc}</p>
+    <div class="eq"><span>${STEPS[5].op}</span><span>P(q₁=0) = Σ |⟨x0y|ψ₅⟩|²,   P(q₁=1) = Σ |⟨x1y|ψ₅⟩|²</span><span>|ψ'⟩ = P_k|ψ₅⟩ / √P(q₁=k)</span></div>
+    <div class="ket"><span class="lbl">Estado antes de medir · |ψ₅⟩</span>${esc(ketStr(st))}</div>
+    <h3>¿A qué estado puede colapsar q₁ y con qué probabilidad?</h3>
+    <div class="outcomes">${out(r0,0)}${out(r1,1)}</div>
+    <h3>Probabilidad de colapso por estado base del registro</h3>
+    <div class="tbl-wrap"><table><thead><tr><th>Estado base</th><th>Amplitud</th><th>Probabilidad</th><th>Da como resultado</th></tr></thead><tbody>${full}</tbody></table></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <button class="btn primary" id="btn-measure">Realizar medición</button>
+      <span class="small muted" id="measure-msg">Elige un resultado al azar con las probabilidades de arriba.</span>
+    </div>`;
+  return el;
+}
+
+function renderFinal(){
+  const old=document.getElementById("final"); if(old) old.remove();
+  const st=history[5];
+  const el=document.createElement("section");
+  el.className="panel final"; el.id="final";
+  let rows="";
+  for(let i=0;i<DIM;i++){const p=cabs2(st[i]); rows+=`<tr${p>EPS?' class="changed"':""}><td class="mono">${ket(i)}</td><td class="mono">${fmtC(st[i])}</td><td class="mono">${st[i].re.toFixed(4)} ${st[i].im<0?"−":"+"} ${Math.abs(st[i].im).toFixed(4)}i</td><td><span class="bar"><b style="width:${p*100}%"></b></span>${pct(p)}</td></tr>`;}
+  const sum=st.reduce((s,a)=>s+cabs2(a),0);
+  el.innerHTML=`
+    <div class="panel-head"><div><div class="eyebrow">Resultado</div><h2>Estado final</h2></div></div>
+    <div class="ket after"><span class="lbl">Estado final del circuito (antes de medir) · |ψ₅⟩</span>${esc(ketStr(st))}</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Estado base</th><th>Amplitud</th><th>Amplitud (decimal)</th><th>Probabilidad</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="small muted" style="margin:0">Suma de probabilidades = ${sum.toFixed(6)}</p>
+    ${qprobHTML(st,"Probabilidad de cada qubit")}
+    ${measured?`<div class="ket" style="border-color:var(--hl-stroke)"><span class="lbl">Tras medir q₁ = ${measured.k} (probabilidad ${pct(measured.p)})</span>${esc(ketStr(measured.state))}</div>`:`<p class="note">Aún no se ha realizado la medición. Pulsa “Realizar medición” en el paso 6 para ver el estado colapsado.</p>`}`;
+  document.getElementById("log").appendChild(el);
+}
+
+function doMeasure(){
+  const st=history[5];
+  const r0=collapse(st,1,0), r1=collapse(st,1,1);
+  const k=Math.random()<r0.p?0:1;
+  const r=k?r1:r0;
+  measured={k,p:r.p,state:r.state};
+  document.getElementById("out0").classList.toggle("picked",k===0);
+  document.getElementById("out1").classList.toggle("picked",k===1);
+  document.getElementById("measure-msg").textContent=`Resultado: q₁ = ${k} (probabilidad ${pct(r.p)}). Puedes volver a medir para repetir el experimento.`;
+  document.getElementById("btn-measure").textContent="Volver a medir";
+  renderFinal();
+}
+
+function setCurrent(k){
+  document.querySelectorAll(".step").forEach(s=>s.classList.toggle("current",+s.dataset.step===k));
+  paintCircuit(stepIdx,k);
+  const st=STEPS[k];
+  document.getElementById("circ-status").textContent=`Paso ${k+1}: ${st.name} ${st.kind==="gate"?"· "+affected(st):"· q₁"}`;
+}
+
+function updateControls(){
+  const next=document.getElementById("btn-next");
+  next.textContent= stepIdx===0?"Iniciar simulación": stepIdx<6?`Siguiente paso (${stepIdx+1}/6)`:"Simulación completa";
+  next.disabled= stepIdx>=6 || running;
+  document.getElementById("btn-all").disabled= stepIdx>=6 || running;
+  document.getElementById("prog-txt").textContent=`Paso ${stepIdx} de 6`;
+  document.getElementById("pbar").innerHTML=[...Array(6)].map((_,k)=>`<i class="${k<stepIdx?"on":""}"></i>`).join("");
+}
+
+function step(){
+  if(stepIdx>=6) return;
+  if(stepIdx===0){
+    try{ history=[initialState().st]; }catch(e){ return; }
+    locked=true; buildInputs(); updatePsi0();
+    for(let k=0;k<5;k++) history.push(applyGate(history[k],STEPS[k]));
+  }
+  const k=stepIdx;
+  const el= STEPS[k].kind==="gate"? renderGateStep(k) : renderMeasureStep();
+  el.addEventListener("click",e=>{ if(e.target.closest("button,summary,details")) return; setCurrent(k); });
+  document.getElementById("log").appendChild(el);
+  stepIdx++;
+  if(STEPS[k].kind==="measure"){
+    document.getElementById("btn-measure").addEventListener("click",doMeasure);
+    renderFinal();
+  }
+  setCurrent(k);
+  updateControls();
+  el.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
+}
+
+async function runAll(){
+  running=true; updateControls();
+  const delay=matchMedia("(prefers-reduced-motion: reduce)").matches?0:650;
+  while(stepIdx<6){ const before=stepIdx; step(); if(stepIdx===before) break; running=true; updateControls(); await new Promise(r=>setTimeout(r,delay)); }
+  running=false; updateControls();
+}
+
+function reset(){
+  history=[]; stepIdx=0; measured=null; locked=false; running=false;
+  document.getElementById("log").innerHTML="";
+  document.getElementById("circ-status").textContent="Listo para iniciar";
+  paintCircuit(0,-1); buildInputs(); updatePsi0(); updateControls();
+  window.scrollTo({top:0});
+}
+
+document.getElementById("btn-next").addEventListener("click",step);
+document.getElementById("btn-all").addEventListener("click",runAll);
+document.getElementById("btn-reset").addEventListener("click",reset);
+document.addEventListener("keydown",e=>{
+  if(e.target.closest("input,textarea")||e.ctrlKey||e.metaKey||e.altKey) return;
+  if(e.key==="ArrowRight"&&!document.getElementById("btn-next").disabled){e.preventDefault(); step();}
+  else if(e.key==="r"||e.key==="R"){e.preventDefault(); reset();}
+});
+drawCircuit(); reset();
+</script>
+</body>
+</html>

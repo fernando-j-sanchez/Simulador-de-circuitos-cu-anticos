@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Álgebra · Circuito 2</title>
+<style>
+@page{size:letter;margin:18mm 16mm}
+body{font-family:Cambria,"Times New Roman",serif;font-size:11.5pt;line-height:1.5;color:#141a24;background:#fff;max-width:820px;margin:0 auto;padding:24px 16px}
+h1{font-size:20pt;margin:0 0 2px}
+h2{font-size:14pt;margin:26px 0 8px;border-bottom:1.5px solid #141a24;padding-bottom:3px;break-after:avoid}
+h3{font-size:12pt;margin:16px 0 6px;break-after:avoid}
+.sub{color:#4a5568;margin:0 0 16px}
+.m{font-family:"Cambria Math",Cambria,serif}
+.eq{font-family:"Cambria Math",Cambria,serif;background:#f2f5f9;border-left:3px solid #0e7c86;padding:8px 12px;margin:8px 0;white-space:pre-wrap;break-inside:avoid;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:9.5pt;margin:8px 0;break-inside:avoid}
+th,td{border:1px solid #b8c2d0;padding:4px 6px;text-align:left;font-family:"Cambria Math",Cambria,serif;vertical-align:top}
+th{background:#e7edf4;font-family:Cambria,serif}
+.mat td{border:none;text-align:center;padding:1px 6px}
+.mat{width:auto;border-left:2px solid #141a24;border-right:2px solid #141a24}
+.row{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+svg{max-width:100%;height:auto}
+.box{border:1.5px solid #141a24;padding:8px 12px;margin:10px 0;break-inside:avoid}
+</style>
+</head>
+<body>
+<h1>Álgebra del Circuito 2</h1>
+<p class="sub">Cómputo Cuántico · Simulador de circuitos cuánticos · Hijar González Fátima Estefanía</p>
+
+<svg viewBox="0 0 740 280" role="img" aria-label="Diagrama del circuito 2">
+  <g font-family="Cambria Math, serif" font-style="italic" font-size="22" fill="#141a24">
+    <text x="16" y="58">q₀ :</text><text x="16" y="148">q₁ :</text><text x="16" y="238">q₂ :</text>
+  </g>
+  <g stroke="#141a24" stroke-width="2" fill="#fff">
+    <line x1="80" y1="50" x2="720" y2="50"/><line x1="80" y1="140" x2="720" y2="140"/><line x1="80" y1="230" x2="720" y2="230"/>
+    <line x1="430" y1="50" x2="430" y2="208"/><line x1="530" y1="140" x2="530" y2="208"/>
+    <rect x="126" y="118" width="48" height="44"/><rect x="216" y="118" width="48" height="44"/><rect x="306" y="208" width="48" height="44"/>
+    <rect x="406" y="208" width="48" height="44"/><rect x="506" y="208" width="48" height="44"/><rect x="610" y="118" width="60" height="44"/>
+    <path d="M 620 150 A 22 20 0 0 1 660 150" fill="none"/><line x1="640" y1="152" x2="652" y2="126"/>
+  </g>
+  <g fill="#141a24"><circle cx="430" cy="50" r="6"/><circle cx="430" cy="140" r="6"/><circle cx="530" cy="140" r="6"/></g>
+  <g font-family="Cambria Math, serif" font-style="italic" font-size="22" fill="#141a24" text-anchor="middle">
+    <text x="150" y="148">H</text><text x="240" y="148">H</text><text x="330" y="238">H</text><text x="430" y="238">X</text><text x="530" y="238">Z</text>
+  </g>
+  <g font-family="Cambria, serif" font-size="13" fill="#4a5568" text-anchor="middle">
+    <text x="150" y="275">U₁</text><text x="240" y="275">U₂</text><text x="330" y="275">U₃</text><text x="430" y="275">U₄</text><text x="530" y="275">U₅</text><text x="640" y="275">M</text>
+  </g>
+</svg>
+
+<h2>1. Convenciones</h2>
+<p>El estado del registro se escribe <span class="m">|q₀q₁q₂⟩</span>, con q₀ como bit más significativo. Un estado general es</p>
+<div class="eq">|ψ⟩ = Σₓ αₓ |x⟩,   x ∈ {000, 001, …, 111},   Σₓ |αₓ|² = 1</div>
+<p>La entrada del circuito es un estado producto <span class="m">|ψ₀⟩ = |a⟩ ⊗ |b⟩ ⊗ |c⟩ = |abc⟩</span> con a, b, c ∈ {0, 1}. Por linealidad, el resultado para cualquier superposición de entrada se obtiene sumando los resultados de las entradas base con sus amplitudes.</p>
+
+<h3>Compuertas de un qubit</h3>
+<div class="row">
+  <span class="m">H = 1/√2</span>
+  <table class="mat"><tr><td>1</td><td>1</td></tr><tr><td>1</td><td>−1</td></tr></table>
+  <span class="m">X =</span>
+  <table class="mat"><tr><td>0</td><td>1</td></tr><tr><td>1</td><td>0</td></tr></table>
+  <span class="m">Z =</span>
+  <table class="mat"><tr><td>1</td><td>0</td></tr><tr><td>0</td><td>−1</td></tr></table>
+</div>
+<div class="eq">H|0⟩ = (|0⟩ + |1⟩)/√2 = |+⟩        H|1⟩ = (|0⟩ − |1⟩)/√2 = |−⟩
+En forma compacta:  H|b⟩ = (1/√2)(|0⟩ + (−1)ᵇ|1⟩)
+X|0⟩ = |1⟩, X|1⟩ = |0⟩          Z|0⟩ = |0⟩, Z|1⟩ = −|1⟩
+X|+⟩ = |+⟩, X|−⟩ = −|−⟩          Z|+⟩ = |−⟩, Z|−⟩ = |+⟩</div>
+
+<h2>2. Operadores de cada paso</h2>
+<div class="eq">U₁ = U₂ = I ⊗ H ⊗ I          (Hadamard sobre q₁)
+U₃ = I ⊗ I ⊗ H              (Hadamard sobre q₂)
+U₄ = CCX(q₀,q₁ → q₂) = (I₈ − |11⟩⟨11| ⊗ I) + |11⟩⟨11| ⊗ X
+     |a,b,c⟩ ↦ |a, b, c ⊕ ab⟩     (intercambia |110⟩ ↔ |111⟩)
+U₅ = I ⊗ CZ(q₁ → q₂) = I ⊗ (|0⟩⟨0| ⊗ I + |1⟩⟨1| ⊗ Z)
+     |a,b,c⟩ ↦ (−1)^(bc) |a,b,c⟩  = diag(1, 1, 1, −1, 1, 1, 1, −1)
+|ψₖ⟩ = Uₖ |ψₖ₋₁⟩,   k = 1, …, 5</div>
+
+<h3>Matriz de U₄ (Toffoli) en la base |000⟩ … |111⟩</h3>
+<table class="mat" style="margin:6px 0">
+<tr><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+</table>
+
+<h2>3. Desarrollo general para la entrada |abc⟩</h2>
+
+<h3>Paso 1 · H sobre q₁</h3>
+<div class="eq">|ψ₁⟩ = (I ⊗ H ⊗ I)|a⟩|b⟩|c⟩ = |a⟩ ⊗ (1/√2)(|0⟩ + (−1)ᵇ|1⟩) ⊗ |c⟩
+     = (1/√2)( |a0c⟩ + (−1)ᵇ |a1c⟩ )</div>
+
+<h3>Paso 2 · H sobre q₁</h3>
+<div class="eq">|ψ₂⟩ = |a⟩ ⊗ (1/√2)( H|0⟩ + (−1)ᵇ H|1⟩ ) ⊗ |c⟩
+     = |a⟩ ⊗ (1/2)[ (|0⟩ + |1⟩) + (−1)ᵇ(|0⟩ − |1⟩) ] ⊗ |c⟩
+     = |a⟩ ⊗ (1/2)[ (1 + (−1)ᵇ)|0⟩ + (1 − (−1)ᵇ)|1⟩ ] ⊗ |c⟩
+     = |a⟩|b⟩|c⟩ = |abc⟩                (porque H·H = I)</div>
+
+<h3>Paso 3 · H sobre q₂</h3>
+<div class="eq">|ψ₃⟩ = |a⟩|b⟩ ⊗ (1/√2)(|0⟩ + (−1)ᶜ|1⟩) = (1/√2)( |ab0⟩ + (−1)ᶜ |ab1⟩ )</div>
+
+<h3>Paso 4 · Toffoli (controles q₀, q₁; objetivo q₂)</h3>
+<p>Si ab = 0 el estado no cambia. Si a = b = 1 se aplica X a q₂:</p>
+<div class="eq">X · (1/√2)(|0⟩ + (−1)ᶜ|1⟩) = (1/√2)(|1⟩ + (−1)ᶜ|0⟩) = (−1)ᶜ · (1/√2)(|0⟩ + (−1)ᶜ|1⟩)
+⇒ |ψ₄⟩ = (−1)^(abc) · |a⟩|b⟩ ⊗ (1/√2)(|0⟩ + (−1)ᶜ|1⟩)</div>
+<p>La Toffoli solo introduce una fase global −1 cuando a = b = c = 1 (porque X|−⟩ = −|−⟩).</p>
+
+<h3>Paso 5 · CZ (control q₁, objetivo q₂)</h3>
+<p>Si b = 0 el estado no cambia. Si b = 1 se aplica Z a q₂:</p>
+<div class="eq">Z · (1/√2)(|0⟩ + (−1)ᶜ|1⟩) = (1/√2)(|0⟩ − (−1)ᶜ|1⟩) = (1/√2)(|0⟩ + (−1)^(c+1)|1⟩)
+⇒ |ψ₅⟩ = (−1)^(abc) · |a⟩|b⟩ ⊗ (1/√2)(|0⟩ + (−1)^(b⊕c)|1⟩)
+       = (−1)^(abc) · (1/√2)( |ab0⟩ + (−1)^(b⊕c) |ab1⟩ )</div>
+
+<h3>Paso 6 · Medición de q₁</h3>
+<div class="eq">P(q₁ = k) = ‖(I ⊗ |k⟩⟨k| ⊗ I)|ψ₅⟩‖²
+P(q₁ = b) = |1/√2|² + |1/√2|² = 1,     P(q₁ = 1 − b) = 0
+Estado tras medir:  |ψ'⟩ = |ψ₅⟩  (q₁ ya estaba en el estado definido |b⟩)
+Colapso del registro completo:  P(|ab0⟩) = 1/2,   P(|ab1⟩) = 1/2</div>
+
+<div class="box"><b>Resultado general.</b> <span class="m">|abc⟩ ⟶ (−1)^(abc) · |a⟩ ⊗ |b⟩ ⊗ H|b ⊕ c⟩</span>. Las dos Hadamard sobre q₁ se cancelan, por lo que la medición de q₁ devuelve siempre el valor inicial b con probabilidad 1. El qubit q₂ termina en |+⟩ si b = c y en |−⟩ si b ≠ c.</div>
+
+<h2>4. Ejemplos desarrollados</h2>
+<h3>Entrada |000⟩</h3>
+<div class="eq">|ψ₀⟩ = |000⟩ = (1, 0, 0, 0, 0, 0, 0, 0)ᵀ
+|ψ₁⟩ = (I⊗H⊗I)|000⟩ = (1/√2)(|000⟩ + |010⟩) = (1/√2)(1, 0, 1, 0, 0, 0, 0, 0)ᵀ
+|ψ₂⟩ = (1/√2)[ (1/√2)(|000⟩ + |010⟩) + (1/√2)(|000⟩ − |010⟩) ] = |000⟩
+|ψ₃⟩ = (I⊗I⊗H)|000⟩ = (1/√2)(|000⟩ + |001⟩) = (1/√2)(1, 1, 0, 0, 0, 0, 0, 0)ᵀ
+|ψ₄⟩ = CCX|ψ₃⟩ = (1/√2)(|000⟩ + |001⟩)      (q₀ = 0: la Toffoli no actúa)
+|ψ₅⟩ = CZ|ψ₄⟩  = (1/√2)(|000⟩ + |001⟩)      (q₁ = 0: la CZ no actúa)
+Medición de q₁:  P(q₁=0) = 1/2 + 1/2 = 1,  P(q₁=1) = 0
+Colapso:  P(|000⟩) = 50 %,  P(|001⟩) = 50 %</div>
+
+<h3>Entrada |111⟩</h3>
+<div class="eq">|ψ₀⟩ = |111⟩
+|ψ₁⟩ = |1⟩ ⊗ (1/√2)(|0⟩ − |1⟩) ⊗ |1⟩ = (1/√2)(|101⟩ − |111⟩)
+|ψ₂⟩ = (1/√2)[ (1/√2)(|101⟩ + |111⟩) − (1/√2)(|101⟩ − |111⟩) ] = |111⟩
+|ψ₃⟩ = |11⟩ ⊗ (1/√2)(|0⟩ − |1⟩) = (1/√2)(|110⟩ − |111⟩)
+|ψ₄⟩ = CCX|ψ₃⟩ = (1/√2)(|111⟩ − |110⟩) = (1/√2)(−|110⟩ + |111⟩)
+|ψ₅⟩ = CZ|ψ₄⟩  = (1/√2)(−|110⟩ − |111⟩) = −(1/√2)(|110⟩ + |111⟩)   (|111⟩ cambia de signo)
+Medición de q₁:  P(q₁=1) = 1/2 + 1/2 = 1,  P(q₁=0) = 0
+Colapso:  P(|110⟩) = 50 %,  P(|111⟩) = 50 %</div>
+
+<h2>5. Tabla completa para las 8 entradas base</h2>
+<table>
+<thead><tr><th>|ψ₀⟩</th><th>|ψ₁⟩ (H q₁)</th><th>|ψ₂⟩ (H q₁)</th><th>|ψ₃⟩ (H q₂)</th><th>|ψ₄⟩ (Toffoli)</th><th>|ψ₅⟩ (CZ)</th><th>Medición q₁</th></tr></thead>
+<tbody>
+{{TABLA}}
+</tbody>
+</table>
+</body>
+</html>
